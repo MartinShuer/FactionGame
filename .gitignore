@@ -1,0 +1,10 @@
+# 不要提交这些文件到 Git
+.buildozer/
+bin/
+*.pyc
+__pycache__/
+.DS_Store
+*.log
+build.log
+.vscode/
+.idea/

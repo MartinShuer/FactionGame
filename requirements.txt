@@ -1,0 +1,8 @@
+# Kivy框架 - 用于跨平台GUI开发
+kivy>=2.2.1
+
+# Buildozer - 用于打包安卓APK（仅在Linux系统上需要）
+# buildozer>=1.5.0
+
+# Cython - Kivy依赖
+# Cython>=0.29.33

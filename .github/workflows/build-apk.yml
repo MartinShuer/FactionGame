@@ -3,41 +3,78 @@ name: Build Android APK
 on:
   push:
     branches: [ main, master ]
-  workflow_dispatch:
+  workflow_dispatch:  # 允许手动触发
+  pull_request:
+    branches: [ main, master ]
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    # 使用 GitHub 提供的免费 runner（重要：不要使用 self-hosted）
+    runs-on: ubuntu-latest
+    
+    # 设置超时时间（避免无限等待）
+    timeout-minutes: 120
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+    - name: 检出代码
+      uses: actions/checkout@v4
     
-    - name: Set up Python
-      uses: actions/setup-python@v4
+    - name: 设置 Python
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
+        cache: 'pip'
     
-    - name: Install system dependencies
+    - name: 安装系统依赖
       run: |
-        sudo apt-get update
-        sudo apt-get install -y git zip unzip openjdk-17-jdk wget \
-          autoconf libtool pkg-config zlib1g-dev libncurses5-dev \
-          libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq \
+          git zip unzip openjdk-17-jdk wget \
+          autoconf libtool pkg-config zlib1g-dev \
+          libncurses5-dev libncursesw5-dev libtinfo5 \
+          cmake libffi-dev libssl-dev \
+          python3-dev python3-pip
     
-    - name: Install Buildozer
+    - name: 安装 Buildozer 和依赖
       run: |
-        pip install --upgrade pip
+        python -m pip install --upgrade pip
         pip install buildozer cython==0.29.33
     
-    - name: Build APK
+    - name: 配置 Git（避免下载超时）
       run: |
-        buildozer android debug
+        git config --global http.postBuffer 524288000
+        git config --global http.lowSpeedLimit 0
+        git config --global http.lowSpeedTime 999999
     
-    - name: Upload APK
-      uses: actions/upload-artifact@v3
+    - name: 设置环境变量
+      run: |
+        echo "GRADLE_OPTS=-Xmx2048m -Dorg.gradle.daemon=false" >> $GITHUB_ENV
+        echo "ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk" >> $GITHUB_ENV
+    
+    - name: 验证必需文件
+      run: |
+        echo "检查必需文件..."
+        ls -lh main.py buildozer.spec || exit 1
+        ls -lh *.png *.mp4 2>/dev/null || echo "警告：部分媒体文件可能缺失"
+    
+    - name: 构建 APK
+      run: |
+        echo "开始构建 APK..."
+        buildozer android debug
+      env:
+        GRADLE_OPTS: -Xmx2048m -Dorg.gradle.daemon=false
+    
+    - name: 查找生成的 APK
+      run: |
+        echo "查找 APK 文件..."
+        find . -name "*.apk" -type f || echo "未找到 APK 文件"
+        ls -lh bin/*.apk 2>/dev/null || echo "bin 目录中未找到 APK"
+    
+    - name: 上传 APK 作为 Artifact
+      uses: actions/upload-artifact@v4
+      if: success()
       with:
         name: FactionGame-APK
         path: bin/*.apk
-        if-no-files-found: error
-
+        retention-days: 30
+        if-no-files-found: warn

@@ -4,12 +4,6 @@
 """
 
 import os
-import sys
-
-# 设置控制台输出编码为 UTF-8（解决 Windows 控制台乱码问题）
-if sys.platform == 'win32':
-    sys.stdout.reconfigure(encoding='utf-8') if hasattr(sys.stdout, 'reconfigure') else None
-
 # 设置视频提供者为ffpyplayer（必须在导入kivy之前）
 os.environ['KIVY_VIDEO'] = 'ffpyplayer'
 

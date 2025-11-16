@@ -1,0 +1,57 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-22.04
+    
+    steps:
+    - name: 📥 检出代码
+      uses: actions/checkout@v4
+    
+    - name: 🐍 设置 Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    
+    - name: 📦 安装系统依赖
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          git zip unzip openjdk-17-jdk wget \
+          autoconf libtool pkg-config zlib1g-dev \
+          libncurses5-dev libncursesw5-dev libtinfo5 \
+          cmake libffi-dev libssl-dev
+    
+    - name: 🔧 安装 Buildozer
+      run: |
+        pip install --upgrade pip
+        pip install buildozer cython==0.29.33
+    
+    - name: 🗑️ 清理缓存（如果存在）
+      run: |
+        rm -rf .buildozer
+        rm -rf bin
+    
+    - name: 🔨 构建 APK
+      run: |
+        buildozer -v android debug
+      env:
+        GRADLE_OPTS: "-Xmx2048m -Dorg.gradle.daemon=false"
+    
+    - name: 📤 上传 APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: FactionGame-APK
+        path: bin/*.apk
+        retention-days: 30
+    
+    - name: ✅ 构建完成
+      run: |
+        echo "✅ APK 构建成功！"
+        echo "📥 请在 Actions 页面的 Artifacts 中下载 APK"
+        ls -lh bin/*.apk
